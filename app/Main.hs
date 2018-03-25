@@ -50,7 +50,7 @@ app auth rq response = do
 
 textPlain = ("Content-Type", "text/plain")
 
-ko = responseLBS status400 [textPlain]
+ko = responseLBS status403 [textPlain]
 ok = responseLBS status200 [textPlain]
 
 main = do
