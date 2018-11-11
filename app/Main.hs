@@ -41,6 +41,7 @@ app auth rq response = do
   result <- runExceptT $ case (pathInfo rq) of
               [ct, c, "read"] -> (fromString . show . WSB.Client.Counter.value) <$> counterRead (CounterReq (CounterTypeReq auth ct) c)
               [ct, c,     v ] -> parse (Text.unpack v) >>= counterPost (CounterReq (CounterTypeReq auth ct) c) >> return "ok"
+              xs              -> throwError $ "Bad path: '" <> fromText (Text.intercalate "</>" xs)
   case result of
     Left  e -> response $ ko $ LBS.fromStrict e
     Right r -> response $ ok $ LBS.fromStrict r
