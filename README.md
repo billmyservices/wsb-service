@@ -18,3 +18,20 @@ Now, you can update resources using:
 $ curl http://localhost:9191/your-counter-type-code/your-counter-code/value
 ```
 
+## Operations supported
+
+### Update resource value
+
+Call the _URL_ and check _HTTP_ status code:
+```
+$ curl http://localhost:9191/your-counter-type-code/your-counter-code/value
+ok
+```
+
+### Read current configuration
+
+Since _value_ is a numeric value, to read use the string _"read"_ as value:
+```
+$ curl http://localhost:9191/your-counter-type-code/your-counter-code/read
+1234
+```

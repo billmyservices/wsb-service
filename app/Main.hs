@@ -9,10 +9,11 @@ import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import Network.HTTP.Types
 import Network.Wai (Application, pathInfo, responseLBS)
-import Network.Wai.Handler.Warp (run)
+import Network.Wai.Handler.Warp (runSettings, defaultSettings, setPort, setHost)
 import System.Environment
 import WSB.Args
 import WSB.Client
+import WSB.Client.Counter
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Conversion as BS
@@ -35,18 +36,14 @@ lookupEnv' n = lift (lookupEnv n) >>= \case
   Just  s -> return s
   Nothing -> throwError $ "You must define the " <> fromString n <> " environment variable"
 
-parseRoute :: Monad m => [Text] -> ExceptT ByteString m (Text, Text, Int64)
-parseRoute [ct, c, v] = (ct, c, ) <$> parse (Text.unpack v)
-parseRoute _ = throwError "Bad route"
-
 app :: AuthReq -> Application
 app auth rq response = do
-  result <- runExceptT $ do
-              (ct, c, v) <- parseRoute (pathInfo rq)
-              counterPost (CounterReq (CounterTypeReq auth ct) c) v
+  result <- runExceptT $ case (pathInfo rq) of
+              [ct, c, "read"] -> (fromString . show . WSB.Client.Counter.value) <$> counterRead (CounterReq (CounterTypeReq auth ct) c)
+              [ct, c,     v ] -> parse (Text.unpack v) >>= counterPost (CounterReq (CounterTypeReq auth ct) c) >> return "ok"
   case result of
     Left  e -> response $ ko $ LBS.fromStrict e
-    Right _ -> response $ ok $ LBS.fromStrict "ok"
+    Right r -> response $ ok $ LBS.fromStrict r
 
 textPlain = ("Content-Type", "text/plain")
 
@@ -73,4 +70,5 @@ main = do
 
   case eauth of
     Left e             -> putStrLn $ "ERROR: " <> (Text.unpack . decodeUtf8) e
-    Right (port, auth) -> run port $ app auth
+    Right (port, auth) -> runSettings (setPort port $ setHost "127.0.0.1" $ defaultSettings) $ app auth
+
